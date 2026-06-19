@@ -632,6 +632,17 @@ function isVerificationRequest(message) {
   ].some((phrase) => normalized.includes(phrase));
 }
 
+function matchesWholeTerm(text, term) {
+  // Frases de varias palavras: busca direta por substring.
+  // Termos de uma palavra: casa apenas a palavra inteira, para evitar
+  // falsos positivos como "la" dentro de "ola", "tela", "bola", "fala".
+  if (term.includes(" ")) {
+    return text.includes(term);
+  }
+
+  return new RegExp(`\\b${term}\\b`, "u").test(text);
+}
+
 function ambiguousSupportAnswer(message) {
   const text = normalizeForGrounding(message);
   const vagueTerms = ["aquele", "negocio", "coisa", "la", "arruma", "deu ruim", "caiu eu acho"];
@@ -651,7 +662,7 @@ function ambiguousSupportAnswer(message) {
 
   if (
     text.length <= 95 &&
-    vagueTerms.some((term) => text.includes(term)) &&
+    vagueTerms.some((term) => matchesWholeTerm(text, term)) &&
     !actionableTargets.some((term) => text.includes(term))
   ) {
     return [
