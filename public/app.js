@@ -461,6 +461,7 @@ function ensureWatchMainAlertStyles() {
       border-radius: 999px;
       color: var(--warning);
       font-weight: 800;
+      font-variant-numeric: tabular-nums;
     }
     .watch-main-alert-copy strong,
     .watch-main-alert-copy p {
@@ -487,6 +488,12 @@ function ensureWatchMainAlertStyles() {
       font-weight: 700;
       padding: 5px 10px;
       cursor: pointer;
+      transition-property: transform, background-color, border-color, color;
+      transition-duration: 150ms;
+      transition-timing-function: ease-out;
+    }
+    .watch-main-alert-toggle:active {
+      transform: scale(0.96);
     }
     .watch-main-alert-toggle[aria-pressed="true"] {
       background: rgba(245, 184, 91, 0.18);
@@ -1023,6 +1030,7 @@ function ensureAnswerStatsStyles() {
     }
     .answer-debate-button {
       margin-top: 8px;
+      min-height: 36px;
       border: 1px solid rgba(245, 184, 91, 0.55);
       border-radius: 999px;
       background: rgba(245, 184, 91, 0.10);
@@ -1031,9 +1039,15 @@ function ensureAnswerStatsStyles() {
       font-size: 13px;
       padding: 6px 14px;
       cursor: pointer;
+      transition-property: transform, background-color, border-color;
+      transition-duration: 150ms;
+      transition-timing-function: ease-out;
     }
     .answer-debate-button:hover {
       background: rgba(245, 184, 91, 0.2);
+    }
+    .answer-debate-button:active {
+      transform: scale(0.97);
     }
   `;
   document.head.appendChild(style);
@@ -1114,6 +1128,13 @@ function ensureAgentDebateStyles() {
     .agent-debate-fallback { margin: 0 0 6px; font-size: 12px; color: var(--warning, #f5b85b); }
     .agent-debate-critic { border-color: rgba(245, 184, 91, 0.45); }
     .agent-debate-final { border-color: rgba(120, 200, 140, 0.5); background: rgba(120, 200, 140, 0.07); }
+    .agent-debate-backdrop:not([hidden]) { animation: agentDebateFade 160ms ease-out; }
+    .agent-debate-panel:not([hidden]) { animation: agentDebateFade 180ms ease-out; }
+    @keyframes agentDebateFade { from { opacity: 0; } to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+      .agent-debate-backdrop:not([hidden]),
+      .agent-debate-panel:not([hidden]) { animation: none; }
+    }
   `;
   document.head.appendChild(style);
 }

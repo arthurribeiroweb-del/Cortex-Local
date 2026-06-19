@@ -25,6 +25,14 @@
 
 html {
   min-height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+img {
+  outline: 1px solid rgba(255, 255, 255, 0.1);
+  outline-offset: -1px;
 }
 
 body {
@@ -74,14 +82,20 @@ p {
   margin: 0;
 }
 
+p {
+  text-wrap: pretty;
+}
+
 h1 {
   font-size: clamp(1.12rem, 2vw, 1.45rem);
   line-height: 1.1;
   letter-spacing: 0;
+  text-wrap: balance;
 }
 
 h2 {
   letter-spacing: 0;
+  text-wrap: balance;
 }
 
 textarea,
@@ -241,6 +255,7 @@ label {
   background: rgba(255, 255, 255, 0.04);
   font-size: 0.82rem;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
@@ -276,8 +291,8 @@ label {
 }
 
 .icon-button {
-  min-height: 36px;
-  padding: 8px 11px;
+  min-height: 40px;
+  padding: 8px 12px;
   font-size: 0.84rem;
   font-weight: 800;
 }
@@ -289,6 +304,15 @@ label {
 .memory-file-button:hover {
   border-color: rgba(96, 165, 250, 0.56);
   background: rgba(96, 165, 250, 0.1);
+}
+
+.icon-button:active,
+.text-button:active,
+.secondary-button:active,
+.primary-button:active,
+.drawer-tabs button:active,
+.memory-file-button:active {
+  transform: scale(0.97);
 }
 
 .ghost-debug {
@@ -759,6 +783,7 @@ label {
   display: block;
   overflow-wrap: anywhere;
   line-height: 1.35;
+  font-variant-numeric: tabular-nums;
 }
 
 .agent-model-status {
