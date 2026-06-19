@@ -925,15 +925,353 @@ function renderAnswerMeta(data) {
   if (data.models || data.mode === "deliberate" || data.mode === "critical") {
     chips.push("Multi-modelo");
   }
-  if (data.metrics && Number.isFinite(Number(data.metrics.total_duration_seconds))) {
-    chips.push(`${Number(data.metrics.total_duration_seconds).toFixed(2)}s`);
-  }
 
   for (const label of chips) {
     const chip = document.createElement("span");
     chip.className = "chip";
     chip.textContent = label;
     elements.answerMeta.appendChild(chip);
+  }
+
+  // Linha de estatisticas sempre visivel: modelo, tempo, velocidade e tokens.
+  ensureAnswerStatsStyles();
+  const metrics = data.metrics || {};
+  const statsParts = [];
+  if (data.model) {
+    statsParts.push({ label: "modelo", value: data.model });
+  }
+  const seconds = Number(metrics.total_duration_seconds);
+  if (Number.isFinite(seconds) && seconds > 0) {
+    statsParts.push({ label: "tempo", value: `${seconds.toFixed(2)}s` });
+  }
+  const speed = Number(metrics.eval_tokens_per_second);
+  if (Number.isFinite(speed) && speed > 0) {
+    statsParts.push({ label: "velocidade", value: `${speed.toFixed(0)} tok/s` });
+  }
+  const tokens = Number(metrics.eval_count);
+  if (Number.isFinite(tokens) && tokens > 0) {
+    statsParts.push({ label: "tokens", value: String(tokens) });
+  }
+  const promptTokens = Number(metrics.prompt_eval_count);
+  if (Number.isFinite(promptTokens) && promptTokens > 0) {
+    statsParts.push({ label: "prompt", value: `${promptTokens} tok` });
+  }
+
+  if (statsParts.length > 0) {
+    const stats = document.createElement("div");
+    stats.className = "answer-stats";
+    for (const part of statsParts) {
+      const item = document.createElement("span");
+      item.className = "answer-stats-item";
+      const value = document.createElement("strong");
+      value.textContent = part.value;
+      item.appendChild(value);
+      const label = document.createElement("span");
+      label.className = "answer-stats-label";
+      label.textContent = part.label;
+      item.appendChild(label);
+      stats.appendChild(item);
+    }
+    elements.answerMeta.appendChild(stats);
+  }
+
+  // Botao para ver o conselho de agentes "trocando ideia", quando houve debate.
+  const usedAgents = Array.isArray(data.agentsUsed) ? data.agentsUsed.length : 0;
+  if (usedAgents > 0 || data.debate) {
+    const debateButton = document.createElement("button");
+    debateButton.type = "button";
+    debateButton.className = "answer-debate-button";
+    debateButton.textContent = "Ver os agentes trocando ideia";
+    debateButton.addEventListener("click", () => openAgentDebateView(data.debate));
+    elements.answerMeta.appendChild(debateButton);
+  }
+}
+
+function ensureAnswerStatsStyles() {
+  if (document.querySelector("#answerStatsStyles")) {
+    return;
+  }
+  const style = document.createElement("style");
+  style.id = "answerStatsStyles";
+  style.textContent = `
+    .answer-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 8px;
+      padding: 8px 12px;
+      border: 1px solid rgba(120, 170, 255, 0.28);
+      border-radius: var(--radius, 10px);
+      background: rgba(120, 170, 255, 0.07);
+      width: 100%;
+    }
+    .answer-stats-item {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+    .answer-stats-item strong {
+      font-variant-numeric: tabular-nums;
+      font-size: 14px;
+    }
+    .answer-stats-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--soft, #8aa);
+      opacity: 0.8;
+    }
+    .answer-debate-button {
+      margin-top: 8px;
+      border: 1px solid rgba(245, 184, 91, 0.55);
+      border-radius: 999px;
+      background: rgba(245, 184, 91, 0.10);
+      color: var(--warning, #f5b85b);
+      font-weight: 700;
+      font-size: 13px;
+      padding: 6px 14px;
+      cursor: pointer;
+    }
+    .answer-debate-button:hover {
+      background: rgba(245, 184, 91, 0.2);
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function ensureAgentDebateStyles() {
+  if (document.querySelector("#agentDebateStyles")) {
+    return;
+  }
+  const style = document.createElement("style");
+  style.id = "agentDebateStyles";
+  style.textContent = `
+    .agent-debate-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 60;
+    }
+    .agent-debate-backdrop[hidden] { display: none; }
+    .agent-debate-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(760px, 94vw);
+      max-height: 86vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface, #11151c);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
+      z-index: 61;
+    }
+    .agent-debate-panel[hidden] { display: none; }
+    .agent-debate-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .agent-debate-body {
+      padding: 14px 16px;
+      overflow-y: auto;
+      display: grid;
+      gap: 12px;
+    }
+    .agent-debate-question .agent-debate-eyebrow,
+    .agent-debate-card-head strong {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--soft, #8aa);
+    }
+    .agent-debate-question p { margin: 4px 0; }
+    .agent-debate-mode { color: var(--soft, #8aa); font-size: 13px; }
+    .agent-debate-card {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .agent-debate-card-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .agent-debate-card-head strong { color: var(--text, #e6edf3); letter-spacing: 0; text-transform: none; font-size: 14px; }
+    .agent-debate-model {
+      font-size: 12px;
+      color: var(--accent, #78aaff);
+      font-variant-numeric: tabular-nums;
+    }
+    .agent-debate-answer { margin: 0; white-space: pre-wrap; line-height: 1.45; }
+    .agent-debate-fallback { margin: 0 0 6px; font-size: 12px; color: var(--warning, #f5b85b); }
+    .agent-debate-critic { border-color: rgba(245, 184, 91, 0.45); }
+    .agent-debate-final { border-color: rgba(120, 200, 140, 0.5); background: rgba(120, 200, 140, 0.07); }
+  `;
+  document.head.appendChild(style);
+}
+
+function ensureAgentDebatePanel() {
+  if (document.querySelector("#agentDebatePanel")) {
+    return;
+  }
+  ensureAgentDebateStyles();
+
+  const backdrop = document.createElement("div");
+  backdrop.id = "agentDebateBackdrop";
+  backdrop.className = "agent-debate-backdrop";
+  backdrop.hidden = true;
+  backdrop.addEventListener("click", closeAgentDebateView);
+
+  const panel = document.createElement("section");
+  panel.id = "agentDebatePanel";
+  panel.className = "agent-debate-panel";
+  panel.hidden = true;
+  panel.setAttribute("role", "dialog");
+  panel.setAttribute("aria-label", "Debate dos agentes");
+  panel.innerHTML = [
+    '<header class="agent-debate-header">',
+    '  <strong>Conselho de agentes</strong>',
+    '  <button id="agentDebateClose" class="text-button" type="button">Fechar</button>',
+    '</header>',
+    '<div id="agentDebateBody" class="agent-debate-body"></div>'
+  ].join("");
+
+  document.body.appendChild(backdrop);
+  document.body.appendChild(panel);
+  document.querySelector("#agentDebateClose").addEventListener("click", closeAgentDebateView);
+}
+
+function closeAgentDebateView() {
+  const panel = document.querySelector("#agentDebatePanel");
+  const backdrop = document.querySelector("#agentDebateBackdrop");
+  if (panel) {
+    panel.hidden = true;
+  }
+  if (backdrop) {
+    backdrop.hidden = true;
+  }
+}
+
+async function openAgentDebateView(debate) {
+  ensureAgentDebatePanel();
+  const panel = document.querySelector("#agentDebatePanel");
+  const backdrop = document.querySelector("#agentDebateBackdrop");
+  const body = document.querySelector("#agentDebateBody");
+  setText(body, "Carregando debate...");
+  panel.hidden = false;
+  backdrop.hidden = false;
+
+  let debateData = debate && Array.isArray(debate.agents) ? debate : null;
+  if (!debateData) {
+    try {
+      const response = await fetch("/api/agents/debates?limit=1");
+      const data = await response.json();
+      debateData = data.ok && Array.isArray(data.debates) ? data.debates[0] : null;
+    } catch (error) {
+      debateData = null;
+    }
+  }
+
+  if (!debateData) {
+    setText(body, "Nenhum debate recente encontrado. Use o modo Deliberado para acionar o conselho de agentes.");
+    return;
+  }
+
+  renderAgentDebate(debateData, body);
+}
+
+function renderAgentDebate(debate, body) {
+  body.innerHTML = "";
+
+  const orchestration = debate.orchestration || {};
+  const mode = orchestration.mode || debate.mode || "";
+  const reason = orchestration.reason || debate.reason || "";
+
+  if (debate.question) {
+    const block = document.createElement("div");
+    block.className = "agent-debate-question";
+    const eyebrow = document.createElement("span");
+    eyebrow.className = "agent-debate-eyebrow";
+    eyebrow.textContent = "Pergunta";
+    block.appendChild(eyebrow);
+    const text = document.createElement("p");
+    text.textContent = debate.question;
+    block.appendChild(text);
+    if (mode) {
+      const meta = document.createElement("p");
+      meta.className = "agent-debate-mode";
+      meta.textContent = `Modo: ${mode}${reason ? ` — ${reason}` : ""}`;
+      block.appendChild(meta);
+    }
+    body.appendChild(block);
+  }
+
+  const agents = Array.isArray(debate.agents) ? debate.agents : [];
+  for (const agent of agents) {
+    const card = document.createElement("article");
+    card.className = "agent-debate-card";
+
+    const head = document.createElement("div");
+    head.className = "agent-debate-card-head";
+    const name = document.createElement("strong");
+    name.textContent = agent.name || agent.id || "Agente";
+    head.appendChild(name);
+    const model = document.createElement("span");
+    model.className = "agent-debate-model";
+    model.textContent = agent.modelUsed || agent.requestedModel || "";
+    head.appendChild(model);
+    card.appendChild(head);
+
+    if (agent.fallback && agent.fallbackReason) {
+      const fallback = document.createElement("p");
+      fallback.className = "agent-debate-fallback";
+      fallback.textContent = `Fallback: ${agent.fallbackReason}`;
+      card.appendChild(fallback);
+    }
+
+    const answer = document.createElement("p");
+    answer.className = "agent-debate-answer";
+    answer.textContent = agent.answer || "(sem resposta)";
+    card.appendChild(answer);
+    body.appendChild(card);
+  }
+
+  if (debate.criticReview) {
+    const critic = document.createElement("article");
+    critic.className = "agent-debate-card agent-debate-critic";
+    const title = document.createElement("strong");
+    title.textContent = "Auditor (crítica)";
+    critic.appendChild(title);
+    const review = debate.criticReview;
+    const reviewText = typeof review === "string"
+      ? review
+      : (review.veredito ? `Veredito: ${review.veredito}` : JSON.stringify(review, null, 2));
+    const text = document.createElement("p");
+    text.className = "agent-debate-answer";
+    text.textContent = reviewText;
+    critic.appendChild(text);
+    body.appendChild(critic);
+  }
+
+  if (debate.finalAnswer) {
+    const final = document.createElement("article");
+    final.className = "agent-debate-card agent-debate-final";
+    const title = document.createElement("strong");
+    title.textContent = "Síntese final";
+    final.appendChild(title);
+    const text = document.createElement("p");
+    text.className = "agent-debate-answer";
+    text.textContent = debate.finalAnswer;
+    final.appendChild(text);
+    body.appendChild(final);
   }
 }
 
