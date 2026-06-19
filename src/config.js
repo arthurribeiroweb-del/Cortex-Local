@@ -68,7 +68,8 @@ function getServerConfig() {
     finalModel: env("FINAL_MODEL", defaultModel),
     httpsPort: Number(env("HTTPS_PORT", "3443")),
     certKeyPath: env("CERT_KEY", "certs/key.pem"),
-    certFilePath: env("CERT_FILE", "certs/cert.pem")
+    certFilePath: env("CERT_FILE", "certs/cert.pem"),
+    authToken: env("AUTH_TOKEN", "")
   };
 }
 

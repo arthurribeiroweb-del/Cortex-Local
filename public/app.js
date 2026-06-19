@@ -1,3 +1,67 @@
+// Token de acesso opcional. Se o backend exigir (AUTH_TOKEN definido), anexa o
+// token salvo no localStorage a todas as chamadas /api e pede o token em caso de 401.
+// Sem token configurado no servidor, nada muda.
+(function setupApiAuth() {
+  const TOKEN_KEY = "jarvisAuthToken";
+  const realFetch = window.fetch.bind(window);
+  let promptingToken = false;
+
+  window.jarvisAuthToken = () => {
+    try {
+      return localStorage.getItem(TOKEN_KEY) || "";
+    } catch (error) {
+      return "";
+    }
+  };
+
+  // Acrescenta ?token= a URLs de GET direto do navegador (ex: audio em <audio src>).
+  window.jarvisWithToken = (url) => {
+    const token = window.jarvisAuthToken();
+    if (!token || typeof url !== "string" || !url.startsWith("/api")) {
+      return url;
+    }
+    return url + (url.includes("?") ? "&" : "?") + "token=" + encodeURIComponent(token);
+  };
+
+  function isApiUrl(url) {
+    return typeof url === "string" && (url.startsWith("/api") || url.includes(`${location.host}/api`));
+  }
+
+  window.fetch = (input, init) => {
+    const options = init ? { ...init } : {};
+    try {
+      const url = typeof input === "string" ? input : (input && input.url) || "";
+      const token = window.jarvisAuthToken();
+      if (token && isApiUrl(url)) {
+        const headers = new Headers((options && options.headers) || (typeof input !== "string" && input && input.headers) || {});
+        if (!headers.has("x-auth-token")) {
+          headers.set("x-auth-token", token);
+        }
+        options.headers = headers;
+      }
+    } catch (error) {
+      // Em caso de erro ao montar headers, segue sem token.
+    }
+
+    return realFetch(input, options).then((response) => {
+      if (response.status === 401 && !promptingToken) {
+        promptingToken = true;
+        const entered = window.prompt("Este Cortex-Local exige um token de acesso. Cole o token:");
+        if (entered) {
+          try {
+            localStorage.setItem(TOKEN_KEY, entered.trim());
+          } catch (error) {
+            // localStorage indisponivel; nao ha como persistir.
+          }
+          location.reload();
+        }
+        promptingToken = false;
+      }
+      return response;
+    });
+  };
+})();
+
 const VoiceState = {
   IDLE: "idle",
   WAITING_WAKE_WORD: "waiting_wake_word",
@@ -2504,7 +2568,7 @@ async function stopLocalAudioRecordingAndSend() {
 
     if (data.audioUrl) {
       setVoiceState(VoiceState.SPEAKING);
-      const audio = new Audio(data.audioUrl);
+      const audio = new Audio(window.jarvisWithToken ? window.jarvisWithToken(data.audioUrl) : data.audioUrl);
       audio.onended = resetToReadyState;
       audio.onerror = resetToReadyState;
       audio.play();

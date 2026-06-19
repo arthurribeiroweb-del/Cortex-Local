@@ -26,6 +26,7 @@ const {
 } = require("./src/brainCorrections");
 
 const { getServerConfig } = require("./src/config");
+const { isAuthorized, extractRequestToken } = require("./src/auth");
 const {
   normalizeForGrounding,
   removeUnsupportedBrazilRegionClaims,
@@ -89,7 +90,8 @@ const {
   ollamaTimeoutMs: OLLAMA_TIMEOUT_MS,
   httpsPort: HTTPS_PORT,
   certKeyPath: CERT_KEY,
-  certFilePath: CERT_FILE
+  certFilePath: CERT_FILE,
+  authToken: AUTH_TOKEN
 } = getServerConfig();
 
 const SYSTEM_PROMPT = `Você é o JARVIS, um assistente local generalista em português do Brasil.
@@ -166,6 +168,25 @@ let lastWebCheck = null;
 let lastAgentDebate = null;
 
 app.use(express.json({ limit: "20mb" }));
+
+// Autenticacao opcional por token. Quando AUTH_TOKEN esta definido no .env,
+// todas as rotas /api (exceto /api/health, util para diagnostico) exigem o token.
+// Sem AUTH_TOKEN o comportamento e o de antes (acesso local aberto).
+app.use("/api", (req, res, next) => {
+  if (!AUTH_TOKEN || req.path === "/health") {
+    return next();
+  }
+
+  if (isAuthorized(extractRequestToken(req), AUTH_TOKEN)) {
+    return next();
+  }
+
+  return res.status(401).json({
+    ok: false,
+    error: "Nao autorizado. Configure o token de acesso do Cortex-Local."
+  });
+});
+
 app.use(express.static(publicDir));
 
 function normalizeRequestImages(images) {
@@ -3139,9 +3160,24 @@ app.use((req, res) => {
   });
 });
 
+// Handlers globais: um erro async solto nao deve derrubar o servidor em silencio.
+process.on("unhandledRejection", (reason) => {
+  console.error("Promise rejeitada sem tratamento:", reason);
+});
+process.on("uncaughtException", (error) => {
+  console.error("Excecao nao capturada:", error);
+});
+
 // So inicia o servidor quando executado diretamente (node server.js).
 // Em testes, o app e importado sem abrir a porta.
 if (require.main === module) {
+  // Aviso de seguranca: servidor exposto na rede sem token de acesso.
+  if ((HOST === "0.0.0.0" || HOST === "::") && !AUTH_TOKEN) {
+    console.warn("AVISO DE SEGURANCA: o servidor esta acessivel na rede (HOST=" + HOST + ") SEM token de acesso.");
+    console.warn("Qualquer dispositivo na rede pode usar a API. Defina AUTH_TOKEN no .env para exigir login,");
+    console.warn("ou use HOST=127.0.0.1 para limitar ao proprio PC.");
+  }
+
   app.listen(PORT, HOST, () => {
     console.log(`Assistente Local (HTTP) em http://localhost:${PORT}`);
   });

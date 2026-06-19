@@ -31,6 +31,24 @@ Depois abra no navegador:
 http://localhost:3000
 ```
 
+## Acesso E Segurança
+
+Por padrão o servidor sobe em `HOST=127.0.0.1` (só o próprio PC). Para acessar pelo
+celular na mesma rede, use `HOST=0.0.0.0` no `.env` — mas aí o servidor fica aberto
+para qualquer dispositivo da rede.
+
+Quando expor na rede, defina um token de acesso no `.env`:
+
+```env
+HOST=0.0.0.0
+AUTH_TOKEN=um-token-bem-grande-e-secreto
+```
+
+Com `AUTH_TOKEN` definido, todas as rotas `/api` (exceto `/api/health`) exigem o token.
+O navegador pede o token uma vez e o guarda localmente; para GETs diretos (áudio) o token
+vai como `?token=`. Sem `AUTH_TOKEN`, o acesso continua aberto e o servidor avisa no boot
+quando está exposto na rede sem token.
+
 ## Testes
 
 A lógica pura (config, grounding, crítico e parser de streaming) tem testes com o runner nativo do Node, sem dependências extras:
