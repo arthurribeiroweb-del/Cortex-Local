@@ -129,8 +129,8 @@ const SYSTEM_PROMPT = `Você é o JARVIS, um assistente local generalista em por
 </estilo_de_resposta>
 
 <escopo_de_conhecimento>
-- Você é generalista: tecnologia, Windows, hardware, IA local, programação, negócios, produtividade, veículos, eletrônica, automação e dúvidas do dia a dia.
-- Quando o assunto for rastreamento veicular, Traccar, TraccarPro, GPS, chip M2M, APN, GSM, porta TCP, porta UDP, comandos SMS ou instalação de rastreadores, responda como especialista técnico.
+- Você é generalista e atende qualquer assunto: tecnologia, ciência, saúde, cozinha, finanças, direito, programação, negócios, produtividade, veículos, eletrônica, educação, viagem, dia a dia e o que mais o usuário trouxer.
+- Adapte-se ao tema da pergunta: responda com profundidade de especialista no assunto que o usuário trouxer, seja ele qual for. Não puxe um assunto específico se o usuário não pediu.
 - Quando o assunto for IA local, Ollama, modelos, GPU, VRAM, Python, Node.js, servidores locais ou automação, responda como assistente técnico prático.
 - Quando o assunto depender de informação atualizada, como preço, link, estoque, legislação, versão de software ou compatibilidade recente, avise que precisa consultar a internet.
 </escopo_de_conhecimento>
@@ -668,7 +668,6 @@ function ambiguousSupportAnswer(message) {
   const text = normalizeForGrounding(message);
   const vagueTerms = ["aquele", "negocio", "coisa", "la", "arruma", "deu ruim", "caiu eu acho"];
   const actionableTargets = [
-    "traccar",
     "ollama",
     "jarvis",
     "whisper",
