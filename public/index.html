@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>JARVIS Local</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#conversationTitle">Ir para a conversa</a>
+
+    <main class="app-shell" data-voice-state="idle">
+      <header class="topbar" aria-label="Topo">
+        <div class="brand-lockup">
+          <span class="system-dot" aria-hidden="true"></span>
+          <div>
+            <h1>JARVIS Local</h1>
+            <p id="headerSubtitle">Assistente pessoal rodando neste PC</p>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <div id="statusBadge" class="status-badge status-checking" aria-live="polite">Verificando</div>
+          <button id="openMemoryButton" class="icon-button" type="button" aria-label="Abrir memória" title="Memória">Memória</button>
+          <button id="openSettingsButton" class="icon-button" type="button" aria-label="Abrir ajustes" title="Ajustes">Ajustes</button>
+          <button id="openDebugButton" class="icon-button ghost-debug" type="button" aria-label="Abrir debug" title="Debug" hidden>Debug</button>
+        </div>
+      </header>
+
+      <section class="command-center" aria-labelledby="voiceTitle">
+        <div class="orb-stage">
+          <div id="jarvisOrb" class="jarvis-orb" aria-hidden="true">
+            <span class="orb-core"></span>
+            <span class="orb-ring orb-ring-one"></span>
+            <span class="orb-ring orb-ring-two"></span>
+            <span class="orb-wave wave-one"></span>
+            <span class="orb-wave wave-two"></span>
+            <span class="orb-wave wave-three"></span>
+          </div>
+        </div>
+
+        <div class="voice-copy">
+          <p id="voiceEyebrow" class="eyebrow">Estado</p>
+          <h2 id="voiceTitle">Diga "Jarvis" para começar</h2>
+          <p id="voiceHint">Converse por voz ou digite sua mensagem no campo inferior.</p>
+        </div>
+
+        <div class="progress-timeline" aria-label="Etapas do processamento">
+          <span data-step="listening">Ouvindo</span>
+          <span data-step="transcribing">Transcrevendo</span>
+          <span data-step="thinking">Pensando</span>
+          <span data-step="reviewing">Revisando</span>
+          <span data-step="web_checking">Verificando</span>
+          <span data-step="speaking">Falando</span>
+        </div>
+      </section>
+
+      <section class="conversation-panel" aria-labelledby="conversationTitle">
+        <div class="section-heading">
+          <h2 id="conversationTitle">Conversa</h2>
+          <div class="chat-actions">
+            <div id="answerMeta" class="answer-meta" aria-label="Indicadores da resposta"></div>
+            <button id="detailsButton" class="text-button" type="button" hidden>Ver detalhes</button>
+            <button id="clearButton" class="text-button" type="button">Limpar sessão</button>
+          </div>
+        </div>
+        <p id="lastTranscript" class="sr-only">Ainda sem pergunta nesta sessão.</p>
+        <p id="currentAnswer" class="sr-only" aria-live="polite">A resposta aparecerá aqui.</p>
+        <div id="historyList" class="history-list empty" aria-live="polite">Nenhuma conversa nesta sessão.</div>
+      </section>
+
+      <form id="chatForm" class="composer" aria-label="Enviar mensagem">
+        <label class="sr-only" for="messageInput">Mensagem para o JARVIS</label>
+        <textarea id="messageInput" name="message" rows="1" placeholder="Digite ou fale com o JARVIS..."></textarea>
+        <input id="imageInput" class="sr-only" type="file" accept="image/*" multiple>
+        <button id="attachImageButton" class="round-button attach-button" type="button" aria-label="Anexar imagem" title="Anexar imagem">Imagem</button>
+        <button id="talkButton" class="round-button mic-button" type="button" aria-label="Falar agora" title="Falar agora">Falar</button>
+        <button id="sendButton" class="round-button send-button" type="submit" aria-label="Enviar mensagem" title="Enviar">Enviar</button>
+        <div id="imageAttachmentPreview" class="image-attachment-preview" hidden></div>
+      </form>
+    </main>
+
+    <div id="drawerBackdrop" class="drawer-backdrop" hidden></div>
+
+    <aside id="settingsDrawer" class="drawer" aria-labelledby="settingsTitle" aria-hidden="true">
+      <div class="drawer-header">
+        <div>
+          <p class="eyebrow">Ajustes</p>
+          <h2 id="settingsTitle">Configurações</h2>
+        </div>
+        <button class="icon-button drawer-close" type="button" data-close-drawer aria-label="Fechar ajustes">Fechar</button>
+      </div>
+
+      <div class="drawer-tabs" role="tablist" aria-label="Seções de configuração">
+        <button class="active" type="button" data-settings-tab="voice">Voz</button>
+        <button type="button" data-settings-tab="models">Modelos</button>
+        <button type="button" data-settings-tab="web">Web check</button>
+        <button type="button" data-settings-tab="memory">Memória</button>
+        <button type="button" data-settings-tab="debates">Debates</button>
+        <button type="button" data-settings-tab="debug">Debug</button>
+      </div>
+
+      <section class="settings-panel active" data-settings-panel="voice">
+        <div class="status-grid">
+          <div><span>Microfone</span><strong id="microphoneStatus">Desconhecido</strong></div>
+          <div><span>Whisper</span><strong id="whisperStatus">Verificando</strong></div>
+          <div><span>Piper</span><strong id="piperStatus">Verificando</strong></div>
+          <div><span>Wake word</span><strong id="wakeWordStatus">Verificando</strong></div>
+        </div>
+
+        <label for="micSelect">Microfone</label>
+        <select id="micSelect">
+          <option value="">Microfone padrão do navegador</option>
+        </select>
+
+        <div class="button-row">
+          <button id="startVoiceButton" class="primary-button" type="button">Ativar wake word</button>
+          <button id="stopVoiceButton" class="secondary-button" type="button">Parar voz</button>
+          <button id="testMicButton" class="secondary-button" type="button">Testar microfone</button>
+          <button id="speakAnswerButton" class="secondary-button" type="button">Ouvir resposta</button>
+        </div>
+
+        <div id="voiceDiagnostics" class="diagnostic-box">Diagnóstico da voz aparecerá aqui.</div>
+
+        <details class="advanced-block">
+          <summary>Avançado</summary>
+          <label for="voiceConfigInput">voice/config.json</label>
+          <textarea id="voiceConfigInput" rows="12" spellcheck="false"></textarea>
+          <div class="button-row">
+            <button id="loadVoiceConfigButton" class="secondary-button" type="button">Carregar config</button>
+            <button id="saveVoiceConfigButton" class="primary-button" type="button">Salvar configuração</button>
+          </div>
+        </details>
+      </section>
+
+      <section class="settings-panel" data-settings-panel="models">
+        <div class="status-grid">
+          <div><span>Backend</span><strong id="backendStatus">Verificando</strong></div>
+          <div><span>Ollama</span><strong id="ollamaStatus">Verificando</strong></div>
+          <div><span>Principal</span><strong id="modelStatus">Verificando</strong></div>
+          <div><span>Crítico</span><strong id="criticModelStatus">Verificando</strong></div>
+        </div>
+
+        <div id="agentModelStatus" class="agent-model-status" aria-live="polite"></div>
+
+        <div class="button-row">
+          <button id="checkMissingAgentModelsButton" class="secondary-button" type="button">Ver modelos faltantes</button>
+        </div>
+        <div id="missingAgentModelsPanel" class="missing-agent-models-panel" hidden></div>
+
+        <label for="modeSelect">Modo padrão</label>
+        <select id="modeSelect">
+          <option value="auto" selected>Auto</option>
+          <option value="simple">Rápido</option>
+          <option value="deliberate">Deliberado</option>
+          <option value="critical">Crítico</option>
+        </select>
+      </section>
+
+      <section class="settings-panel" data-settings-panel="web">
+        <div class="status-grid">
+          <div><span>Provider</span><strong id="webProviderStatus">Verificando</strong></div>
+          <div><span>Status</span><strong id="webFeatureStatus">Verificando</strong></div>
+        </div>
+        <p class="soft-note">A verificação aparece só quando for acionada ou quando você abrir os detalhes da resposta.</p>
+        <button id="verifyButton" class="secondary-button" type="button">Verificar última resposta</button>
+        <button id="saveCorrectionButton" class="secondary-button" type="button">Salvar correção no brain</button>
+      </section>
+
+      <section class="settings-panel" data-settings-panel="memory">
+        <p class="soft-note">A memória principal fica no painel lateral dedicado. Esta seção mostra apenas o estado do recurso.</p>
+        <div class="status-grid">
+          <div><span>Memória</span><strong id="memoryFeatureStatus">Ativa</strong></div>
+          <div><span>Arquivos</span><strong id="memoryCountStatus">Carregando</strong></div>
+        </div>
+        <button id="openMemoryFromSettingsButton" class="primary-button" type="button">Abrir memória</button>
+      </section>
+
+      <section class="settings-panel" data-settings-panel="debates">
+        <div class="button-row">
+          <button id="refreshDebatesButton" class="secondary-button" type="button">Atualizar debates</button>
+        </div>
+        <div id="debateHistoryStatus" class="soft-note">Debates recentes aparecerão aqui.</div>
+        <div id="debateHistoryList" class="debate-history-list empty">Nenhum debate carregado.</div>
+      </section>
+
+      <section class="settings-panel" data-settings-panel="debug">
+        <label class="toggle-row" for="debugToggle">
+          <input id="debugToggle" type="checkbox">
+          <span>Mostrar análise interna</span>
+        </label>
+        <label class="toggle-row" for="metricsToggle">
+          <input id="metricsToggle" type="checkbox">
+          <span>Mostrar métricas</span>
+        </label>
+        <label class="toggle-row" for="logsToggle">
+          <input id="logsToggle" type="checkbox">
+          <span>Mostrar logs técnicos</span>
+        </label>
+      </section>
+    </aside>
+
+    <aside id="memoryDrawer" class="drawer memory-drawer" aria-labelledby="memoryTitle" aria-hidden="true">
+      <div class="drawer-header">
+        <div>
+          <p class="eyebrow">Vault local</p>
+          <h2 id="memoryTitle">Memória</h2>
+        </div>
+        <button class="icon-button drawer-close" type="button" data-close-drawer aria-label="Fechar memória">Fechar</button>
+      </div>
+
+      <div class="memory-tools">
+        <label class="sr-only" for="memorySearchInput">Buscar na memória</label>
+        <input id="memorySearchInput" type="search" placeholder="Buscar na memória...">
+        <button id="refreshMemoryButton" class="secondary-button" type="button">Atualizar</button>
+        <button id="openVaultButton" class="secondary-button" type="button">Abrir vault</button>
+      </div>
+
+      <div class="quick-memory">
+        <label for="rememberInput">Lembrar informação</label>
+        <textarea id="rememberInput" rows="3" placeholder="Ex: Meu servidor TraccarPro é 192.0.2.10"></textarea>
+        <button id="rememberButton" class="primary-button" type="button">Salvar memória</button>
+        <p id="memoryMessage" class="memory-message" aria-live="polite"></p>
+      </div>
+
+      <div id="memoryFiles" class="memory-categories empty">Carregando memória...</div>
+    </aside>
+
+    <section id="memoryEditorModal" class="modal" aria-labelledby="memoryEditorTitle" aria-hidden="true">
+      <div class="modal-card">
+        <div class="drawer-header">
+          <div>
+            <p class="eyebrow">Markdown</p>
+            <h2 id="memoryEditorTitle">Editar memória</h2>
+          </div>
+          <button id="closeMemoryEditorButton" class="icon-button" type="button" aria-label="Fechar editor">Fechar</button>
+        </div>
+        <label for="memoryPathInput">Arquivo</label>
+        <input id="memoryPathInput" type="text" placeholder="profile.md">
+        <label for="memoryContentInput">Conteúdo Markdown</label>
+        <textarea id="memoryContentInput" rows="16" placeholder="Abra ou crie um arquivo .md da memória..."></textarea>
+        <div class="button-row">
+          <button id="saveMemoryButton" class="primary-button" type="button">Salvar</button>
+          <button id="cancelMemoryEditorButton" class="secondary-button" type="button">Cancelar</button>
+        </div>
+      </div>
+    </section>
+
+    <aside id="detailsDrawer" class="drawer" aria-labelledby="detailsTitle" aria-hidden="true">
+      <div class="drawer-header">
+        <div>
+          <p class="eyebrow">Resposta</p>
+          <h2 id="detailsTitle">Detalhes</h2>
+        </div>
+        <button class="icon-button drawer-close" type="button" data-close-drawer aria-label="Fechar detalhes">Fechar</button>
+      </div>
+
+      <div id="metricsPanel" class="metrics-grid" hidden>
+        <div><span>Modelo</span><strong id="metricModel">-</strong></div>
+        <div><span>Tempo total</span><strong id="metricTime">-</strong></div>
+        <div><span>Tokens/s</span><strong id="metricSpeed">-</strong></div>
+        <div><span>Tokens</span><strong id="metricTokens">-</strong></div>
+      </div>
+
+      <div id="verificationPanel" class="verification-panel" hidden>
+        <strong>Web check</strong>
+        <p id="verificationStatus">Nenhuma verificação feita.</p>
+        <div id="verificationSources" class="verification-sources"></div>
+      </div>
+
+      <pre id="debugPanel" class="debug-panel" hidden></pre>
+      <pre id="voiceLogs" class="debug-panel" hidden>Logs da voz aparecerão aqui.</pre>
+    </aside>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>

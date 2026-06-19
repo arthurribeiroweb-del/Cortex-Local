@@ -1,0 +1,31 @@
+# Dependencias
+node_modules/
+
+# Segredos (use .env.example como template)
+.env
+
+# Certificados TLS (chave privada nao deve ir para o git)
+certs/
+
+# Logs de conversa (contem historico do usuario)
+logs/*
+!logs/.gitkeep
+
+# Audio gerado pela voz local
+voice/audio/*
+!voice/audio/.gitkeep
+
+# Config de runtime da voz (use voice/config.example.json como template)
+voice/config.json
+
+# Pesquisas web salvas automaticamente
+memory/brain/web-research/*
+!memory/brain/web-research/.gitkeep
+
+# Memoria pessoal/privada do usuario (nao deve ir para repo publico)
+# Contem perfil, dados de negocio, IPs de servidor e mensagens de clientes.
+memory/profile.md
+memory/vault/*
+!memory/vault/.gitkeep
+memory/index/*
+!memory/index/.gitkeep

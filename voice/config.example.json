@@ -1,0 +1,20 @@
+{
+  "backend_url": "http://localhost:3000/api/chat",
+  "wake_word": "jarvis",
+  "wakeword_model_path": "models/jarvis.tflite",
+  "wakeword_threshold": 0.5,
+  "whisper_exe_path": "C:/PROJETOS/IA-LOCAL/tools/whisper.cpp/Release/whisper-cli.exe",
+  "whisper_model_path": "C:/PROJETOS/IA-LOCAL/models/whisper/ggml-base.bin",
+  "whisper_language": "pt",
+  "piper_exe_path": "C:/PROJETOS/IA-LOCAL/tools/piper/piper/piper.exe",
+  "piper_model_path": "C:/PROJETOS/IA-LOCAL/models/piper/pt_BR-faber-medium.onnx",
+  "sample_rate": 16000,
+  "wakeword_chunk_samples": 1280,
+  "silence_threshold": 450,
+  "silence_seconds": 1.2,
+  "max_record_seconds": 20,
+  "temporary_audio_dir": "audio",
+  "backend_timeout_seconds": 120,
+  "whisper_timeout_seconds": 120,
+  "piper_timeout_seconds": 120
+}

@@ -1,0 +1,23 @@
+{
+  "name": "cortex-local",
+  "version": "1.0.0",
+  "description": "Cortex-Local: assistente local multiagente para Windows usando Ollama e Express.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "ollama",
+    "ia-local",
+    "assistant"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
